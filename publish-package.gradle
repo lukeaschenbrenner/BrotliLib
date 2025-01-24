@@ -1,0 +1,200 @@
+apply plugin: 'maven-publish'
+apply plugin: 'org.jreleaser'
+
+
+//java {
+//    withJavadocJar()
+//    withSourcesJar()
+//}
+//version = properties["VERSION"].toString()
+//description = properties["POM_DESCRIPTION"].toString()
+
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = property("GROUP_ID")
+            artifactId = property("ARTIFACT_ID")
+
+//            from components.java
+            afterEvaluate {
+                from components["release"]
+            } // this is what gets the release aar into the staging-deploy folder!
+
+            pom {
+                name = 'Brotli4J-Android'
+                description = property("POM_DESCRIPTION")
+                url = property("POM_URL")
+                inceptionYear = '2023'
+                version = property("VERSION")
+                licenses {
+                    license {
+                        name = 'Apache-2.0'
+                        url = 'https://spdx.org/licenses/Apache-2.0.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'hyperxpro'
+                        name = 'Aayush Atharva'
+                    }
+                    developer {
+                        id = 'lukeaschenbrenner'
+                        name = 'Luke Aschenbrenner'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/lukeaschenbrenner/BrotliLib.git'
+                    developerConnection = 'scm:git:ssh://github.com/lukeaschenbrenner/BrotliLib.git'
+                    url = 'https://github.com/lukeaschenbrenner/BrotliLib'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('staging-deploy')
+        }
+    }
+}
+
+jreleaser {
+    environment {
+        variables = "../gradle.properties"
+    }
+    project {
+        authors = ['lukeaschenbrenner']
+        license = 'Apache-2.0'
+        inceptionYear = '2023'
+        version = property("VERSION")
+        versionPattern = 'CUSTOM'
+        description = property("POM_DESCRIPTION")
+    }
+    gitRootSearch = true
+    signing {
+        active = 'ALWAYS'
+        armored = true
+        verify = true
+        mode = "COMMAND"
+        artifacts = true
+        checksums = true
+        files = false
+        passphrase = property("JRELEASER_GPG_PASSPHRASE")
+        publicKey = property("JRELEASER_GPG_PUBLIC_KEY")
+        secretKey = property("JRELEASER_GPG_SECRET_KEY")
+    }
+    release {
+        github {
+            enabled = true //required to work, but not used https://github.com/jreleaser/jreleaser/discussions/367
+            skipRelease = true
+            skipTag = true
+        }
+    }
+    deploy {
+        maven {
+//            nexus2 {
+//                'maven-central' {
+//                    active = 'ALWAYS'
+//                    url = 'https://s01.oss.sonatype.org/service/local'
+//                    snapshotUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+//                    closeRepository = true
+//                    releaseRepository = true
+//                    stagingRepository('build/staging-deploy')
+//                }
+//            }
+            /* Portal Publisher API */
+            mavenCentral {
+                sonatype {
+                    active = 'ALWAYS'
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().toString())
+                    setAuthorization("Basic")
+                    applyMavenCentralRules = false // Wait for fix: https://github.com/kordamp/pomchecker/issues/21
+                    sign = true
+                    checksums = true
+                    sourceJar = true
+                    javadocJar = true
+                    retryDelay = 60
+                }
+            }
+
+        }
+    }
+}
+
+
+
+tasks.named("jreleaserDeploy").configure {
+    def directory = layout.buildDirectory.dir("jreleaser")
+    mkdir (directory)
+}
+
+
+// The below is needed because for some crazy reason, jReleaser was never written to handle user folder gradle.properties, only for project.
+tasks.register('setupEnvFile') {
+    doLast {
+        def gradleUserHome = gradle.gradleUserHomeDir
+        def propertiesFile = new File(gradleUserHome, "gradle.properties")
+        def envFile = new File(project.projectDir, ".env") // .env file in the project root
+
+        if (propertiesFile.exists()) {
+            println "Found gradle.properties at: ${propertiesFile.absolutePath}"
+            envFile.text = ""
+            // Read and parse properties
+            def properties = new Properties()
+            def currentKey = null
+            def currentValue = new StringBuilder()
+
+            propertiesFile.eachLine { line ->
+                // Ignore comments and blank lines
+                if (line.startsWith("#") || line.trim().isEmpty()) {
+                    return
+                }
+
+                // Handle multi-line values
+                if (line.endsWith("\\")) {
+                    def part = line[0..-2].trim() // Remove the trailing backslash
+                    if (currentKey) {
+                        currentValue.append(part + "\n")
+                    } else {
+                        def (key, value) = part.split("=", 2)*.trim()
+                        currentKey = key
+                        currentValue.append(value + "\n")
+                    }
+                } else {
+                    if (currentKey) {
+                        currentValue.append(line.trim())
+                        properties[currentKey] = currentValue.toString().trim()
+                        currentKey = null
+                        currentValue.setLength(0)
+                    } else {
+                        def (key, value) = line.split("=", 2)*.trim()
+                        properties[key] = value
+                    }
+                }
+            }
+
+            // Set system properties
+            properties.each { key, value ->
+                println "Setting system property: ${key} = ${value}"
+                envFile.append("${key}=${value}\n")
+            }
+        } else {
+            println "No gradle.properties file found at: ${propertiesFile.absolutePath}"
+        }
+    }
+}
+
+tasks.named('jreleaserDeploy') {
+    dependsOn setupEnvFile
+
+    doLast {
+        // Delete the .env file after jReleaserDeploy has run
+        def envFile = new File(project.projectDir, ".env")
+        if (envFile.exists()) {
+            println "Deleting .env file..."
+            envFile.delete()
+        }
+    }
+}

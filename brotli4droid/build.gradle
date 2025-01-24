@@ -1,19 +1,24 @@
 plugins {
     id 'com.android.library'
 }
-
 android {
     namespace 'com.txtnet.brotli4droid'
-    compileSdk 33
+    compileSdk 34
+    ndkVersion "23.1.7779620"
 
     defaultConfig {
         minSdk 19
-        targetSdk 33
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a"
+        }
+        aarMetadata {
+            minCompileSdk = 34
         }
 
     }
@@ -25,6 +30,7 @@ android {
         }
 
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -35,16 +41,16 @@ android {
             // Provides a relative path to your CMake build script.
             //path "CMakeLists.txt"
             path file('src/main/cpp/CMakeLists.txt')
-            version '3.18.1'
+            version '3.22.1'
         }
     }
 
-    sourceSets {
-        main {
-            // let gradle pack the shared library into apk
-            jniLibs.srcDir(['src/main/jniLibs/ABI/'])
-        }
-    }
+//    sourceSets {
+//        main {
+//            // let gradle pack the shared library into apk
+//            jniLibs.srcDir(['src/main/jniLibs/ABI/'])
+//        }
+//    }
 
 }
 
@@ -60,3 +66,16 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
 
+android {
+    publishing {
+        singleVariant("release") { // this is what gets everything besides the .aar (-javadoc.jar, -sources.jar) into the staging-deploy folder
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+ext {
+    ARTIFACT_ID = "Brotli4Droid"
+}
+apply from: '../publish-package.gradle'

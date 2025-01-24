@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+.env
+/brotli4droid/.env
