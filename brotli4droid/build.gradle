@@ -3,19 +3,19 @@ plugins {
 }
 android {
     namespace 'com.txtnet.brotli4droid'
-    compileSdk 35
+    compileSdk 36
     ndkVersion "23.1.7779620"
 
     defaultConfig {
         minSdk 19
-        targetSdk 35
+        targetSdk 36
         versionCode 1
         versionName property("VERSION")
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a"
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
         }
         aarMetadata {
             minCompileSdk = 34

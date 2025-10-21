@@ -39,7 +39,7 @@ public class Brotli4jLoader {
 
        // if (customPath != null) {
             try {
-                System.loadLibrary("brotlilib");
+                System.loadLibrary("brotli4droid");
             } catch (Throwable throwable) {
                 cause = throwable;
             }

@@ -16,13 +16,12 @@ project("brotli4droid")
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        brotlilib
+        brotli4droid
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        native-lib.cpp
         brotli/common/constants.c
         brotli/common/context.c
         brotli/common/dictionary.c
@@ -77,7 +76,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        brotlilib
+        brotli4droid
 
         # Links the target library to the log library
         # included in the NDK.
@@ -109,3 +108,7 @@ INCLUDE_DIRECTORIES(include/)
 # you want to add. CMake verifies that the library exists before
 # completing its build.
 #add_executable(libbrotli.so)
+
+# In linking step, set up memory allocation to support 16kb page size. Required for modern ARM64 arch w/o emulation.
+# I can't wait for Google to decide this project isn't worth it anymore... But they're giving us a leash for now!
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-Wl,-z,max-page-size=16384")

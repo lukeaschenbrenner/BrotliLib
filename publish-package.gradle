@@ -13,8 +13,8 @@ apply plugin: 'org.jreleaser'
 publishing {
     publications {
         maven(MavenPublication) {
-            groupId = property("GROUP_ID")
-            artifactId = property("ARTIFACT_ID")
+            groupId = findProperty("GROUP_ID") ?: ""
+            artifactId = findProperty("ARTIFACT_ID") ?: ""
 
 //            from components.java
             afterEvaluate {
@@ -23,10 +23,10 @@ publishing {
 
             pom {
                 name = 'Brotli4J-Android'
-                description = property("POM_DESCRIPTION")
-                url = property("POM_URL")
+                description = findProperty("POM_DESCRIPTION") ?: ""
+                url = findProperty("POM_URL") ?: ""
                 inceptionYear = '2023'
-                version = property("VERSION")
+                version = findProperty("VERSION") ?: ""
                 licenses {
                     license {
                         name = 'Apache-2.0'
@@ -67,9 +67,9 @@ jreleaser {
         authors = ['lukeaschenbrenner']
         license = 'Apache-2.0'
         inceptionYear = '2023'
-        version = property("VERSION")
+        version = findProperty("VERSION") ?: ""
         versionPattern = 'CUSTOM'
-        description = property("POM_DESCRIPTION")
+        description = findProperty("POM_DESCRIPTION") ?: ""
     }
     gitRootSearch = true
     signing {
@@ -80,9 +80,9 @@ jreleaser {
         artifacts = true
         checksums = true
         files = false
-        passphrase = property("JRELEASER_GPG_PASSPHRASE")
-        publicKey = property("JRELEASER_GPG_PUBLIC_KEY")
-        secretKey = property("JRELEASER_GPG_SECRET_KEY")
+        passphrase = findProperty("JRELEASER_GPG_PASSPHRASE") ?: ""
+        publicKey = findProperty("JRELEASER_GPG_PUBLIC_KEY") ?: ""
+        secretKey = findProperty("JRELEASER_GPG_SECRET_KEY") ?: ""
     }
     release {
         github {
@@ -154,7 +154,11 @@ tasks.register('setupEnvFile') {
 
                 // Handle multi-line values
                 if (line.endsWith("\\")) {
-                    def part = line[0..-2].trim() // Remove the trailing backslash
+                    // Remove the trailing backslash
+                    def part = ""
+                    if (line.length() > 1) {
+                        part = line[0..-2].trim()
+                    }
                     if (currentKey) {
                         currentValue.append(part + "\n")
                     } else {
